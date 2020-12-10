@@ -86,8 +86,8 @@ function! s:get_syn_attr(synid) abort
   let termopt = ''
   let termopts = ['bold', 'italic', 'reverse', 'inverse', 'standout', 'underline', 'undercurl', 'strike']
   for topt in termopts
-      if synIDattr(a:synid, topt, trm) == 1
-          let termopt .= termopt.','
+      if synIDattr(a:synid, topt, trm) == '1'
+          let termopt .= topt.','
       endif
   endfor
   if len(termopt) > 0
