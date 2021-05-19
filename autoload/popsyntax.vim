@@ -14,7 +14,12 @@ let s:pwid = 0
 function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
     if s:pwid > 0
-        call popup_close(s:pwid)
+        if exists('*popup_close')
+            call popup_close(s:pwid)
+        elseif has('nvim')
+            call nvim_win_close(s:pwid, v:false)
+        endif
+        let s:pwid = 0
     endif
     if cword != ''
         if has('gui_running')
@@ -26,13 +31,13 @@ function! popsyntax#open_popup() abort
         let baseSyn = s:get_syn_attr(s:get_syn_id(0))
         let s_info = "name: " . baseSyn.name
         if baseSyn.termfg != ''
-            let s_info .= " \t".trm."fg: " . baseSyn.termfg
+            let s_info .= "   ".trm."fg: " . baseSyn.termfg
         endif
         if baseSyn.termbg != ''
-            let s_info .= " \t".trm."bg: " . baseSyn.termbg
+            let s_info .= "   ".trm."bg: " . baseSyn.termbg
         endif
         if baseSyn.termopt != ''
-            let s_info .= " \t".trm.": " . baseSyn.termopt
+            let s_info .= "   ".trm.": " . baseSyn.termopt
         endif
         let popup_text = [s_info]
 
@@ -40,25 +45,50 @@ function! popsyntax#open_popup() abort
             let linkedSyn = s:get_syn_attr(s:get_syn_id(1))
             let link_info = "=> name: " . linkedSyn.name
             if linkedSyn.termfg != ""
-                let link_info .= " \t".trm."fg: " . linkedSyn.termfg
+                let link_info .= "   ".trm."fg: " . linkedSyn.termfg
             endif
             if linkedSyn.termbg != ""
-                let link_info .= " \t".trm."bg: " . linkedSyn.termbg
+                let link_info .= "   ".trm."bg: " . linkedSyn.termbg
             endif
             if linkedSyn.termopt != ""
-                let link_info .= " \t".trm.": " . linkedSyn.termopt
+                let link_info .= "   ".trm.": " . linkedSyn.termopt
             endif
             " let s_info = '   '.s_info
             let popup_text = [s_info, link_info]
         endif
 
-        let s:pwid = popup_create(popup_text, #{
-                    \ maxheight: 3,
-                    \ close: 'click',
-                    \ line: 'cursor-1',
-                    \ col: 'cursor',
-                    \ pos: 'botleft',
-                    \})
+        if exists('*popup_create')
+            let s:pwid = popup_create(popup_text, #{
+                        \ maxheight: 3,
+                        \ close: 'click',
+                        \ line: 'cursor-1',
+                        \ col: 'cursor',
+                        \ pos: 'botleft',
+                        \})
+
+        elseif has('nvim')
+            let width = len(popup_text[0])
+            if len(popup_text)==2 && width<len(popup_text[1])
+                let width = len(popup_text[1])
+            endif
+            let config = {
+                        \ 'relative': 'cursor',
+                        \ 'anchor': 'NW',
+                        \ 'row': 1,
+                        \ 'col': 0,
+                        \ 'height': len(popup_text),
+                        \ 'width': width,
+                        \ 'style': 'minimal',
+                        \ 'focusable': v:false,
+                        \ }
+            let bufnr = nvim_create_buf(v:false, v:true)
+            let s:pwid = nvim_open_win(bufnr, v:false, config)
+            let winnr = win_id2win(s:pwid)
+            execute winnr.'windo call append(0, popup_text)'
+            execute winnr.'windo normal! gg'
+            execute winnr.'windo wincmd p'
+
+        endif
     endif
 endfunction
 
@@ -110,7 +140,12 @@ function! popsyntax#popsyntax_on() abort
 endfunction
 
 function! popsyntax#popsyntax_off() abort
-    call popup_close(s:pwid)
+    if exists('*popup_close')
+        call popup_close(s:pwid)
+    elseif has('nvim')
+        call nvim_win_close(s:pwid, v:false)
+    endif
+    let s:pwid = 0
     augroup popsyntax
         autocmd!
     augroup end
