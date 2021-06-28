@@ -14,12 +14,7 @@ let s:pwid = 0
 function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
     if s:pwid > 0
-        if exists('*popup_close')
-            call popup_close(s:pwid)
-        elseif has('nvim')
-            call nvim_win_close(s:pwid, v:false)
-        endif
-        let s:pwid = 0
+        call popsyntax#close_popup()
     endif
     if cword != ''
         if has('gui_running')
@@ -92,6 +87,15 @@ function! popsyntax#open_popup() abort
     endif
 endfunction
 
+function! popsyntax#close_popup()
+    if exists('*popup_close')
+        call popup_close(s:pwid)
+    elseif has('nvim')
+        call nvim_win_close(s:pwid, v:false)
+    endif
+    let s:pwid = 0
+endfunction
+
 function! s:get_syn_id(transparent) abort
   let synid = synID(line("."), col("."), 1)
   if a:transparent
@@ -136,16 +140,12 @@ function! popsyntax#popsyntax_on() abort
     augroup popsyntax
         autocmd!
         autocmd CursorMoved * call popsyntax#open_popup()
+        autocmd InsertEnter * call popsyntax#close_popup()
     augroup end
 endfunction
 
 function! popsyntax#popsyntax_off() abort
-    if exists('*popup_close')
-        call popup_close(s:pwid)
-    elseif has('nvim')
-        call nvim_win_close(s:pwid, v:false)
-    endif
-    let s:pwid = 0
+    call popsyntax#close_popup()
     augroup popsyntax
         autocmd!
     augroup end
