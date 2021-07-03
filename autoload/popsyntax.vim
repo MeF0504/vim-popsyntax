@@ -11,6 +11,9 @@ function! popsyntax#popsyntax_toggle() abort
 endfunction
 
 let s:pwid = 0
+if has('nvim')
+    let s:bufnr = 0
+endif
 function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
     if s:pwid > 0
@@ -76,12 +79,16 @@ function! popsyntax#open_popup() abort
                         \ 'style': 'minimal',
                         \ 'focusable': v:false,
                         \ }
-            let bufnr = nvim_create_buf(v:false, v:true)
-            let s:pwid = nvim_open_win(bufnr, v:false, config)
+            if s:bufnr == 0
+                let s:bufnr = nvim_create_buf(v:false, v:true)
+            endif
+            if s:pwid == 0
+                let s:pwid = nvim_open_win(s:bufnr, v:false, config)
+            else
+                call nvim_set_config(s:pwid, config)
+            endif
             let winnr = win_id2win(s:pwid)
-            execute winnr.'windo call append(0, popup_text)'
-            execute winnr.'windo normal! gg'
-            execute winnr.'windo wincmd p'
+            call nvim_buf_set_lines(s:bufnr, 0, -1, 0, popup_text)
 
         endif
     endif
