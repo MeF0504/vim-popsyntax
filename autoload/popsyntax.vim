@@ -16,7 +16,7 @@ if has('nvim')
 endif
 function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
-    if s:pwid > 0
+    if (s:pwid > 0) && !has('nvim')
         call popsyntax#close_popup()
     endif
     if cword != ''
@@ -55,7 +55,7 @@ function! popsyntax#open_popup() abort
             let popup_text = [s_info, link_info]
         endif
 
-        if exists('*popup_create')
+        if has('popupwin')
             let s:pwid = popup_create(popup_text, #{
                         \ maxheight: 3,
                         \ close: 'click',
@@ -85,9 +85,8 @@ function! popsyntax#open_popup() abort
             if s:pwid == 0
                 let s:pwid = nvim_open_win(s:bufnr, v:false, config)
             else
-                call nvim_set_config(s:pwid, config)
+                call nvim_win_set_config(s:pwid, config)
             endif
-            let winnr = win_id2win(s:pwid)
             call nvim_buf_set_lines(s:bufnr, 0, -1, 0, popup_text)
 
         endif
