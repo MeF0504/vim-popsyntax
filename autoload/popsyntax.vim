@@ -20,7 +20,7 @@ function! popsyntax#open_popup() abort
         call popsyntax#close_popup()
     endif
     if cword != ''
-        if has('gui_running')
+        if has('gui_running') || (has('termguicolors') && &termguicolors)
             let trm = 'gui'
         else
             let trm = 'cterm'
@@ -103,43 +103,43 @@ function! popsyntax#close_popup()
 endfunction
 
 function! s:get_syn_id(transparent) abort
-  let synid = synID(line("."), col("."), 1)
-  if a:transparent
-    return synIDtrans(synid)
-  else
-    return synid
-  endif
+    let synid = synID(line("."), col("."), 1)
+    if a:transparent
+        return synIDtrans(synid)
+    else
+        return synid
+    endif
 endfunction
 
 function! s:get_syn_attr(synid) abort
-  let name = synIDattr(a:synid, "name")
-  if has('gui_running')
-      let termfg = synIDattr(a:synid, "fg#", "gui")
-      let termbg = synIDattr(a:synid, "bg#", "gui")
-      let trm = 'gui'
-  else
-      let termfg = synIDattr(a:synid, "fg", "cterm")
-      let termbg = synIDattr(a:synid, "bg", "cterm")
-      let trm = 'cterm'
-  endif
+    let name = synIDattr(a:synid, "name")
+    if has('gui_running') || (has('termguicolors') && &termguicolors)
+        let termfg = synIDattr(a:synid, "fg#", "gui")
+        let termbg = synIDattr(a:synid, "bg#", "gui")
+        let trm = 'gui'
+    else
+        let termfg = synIDattr(a:synid, "fg", "cterm")
+        let termbg = synIDattr(a:synid, "bg", "cterm")
+        let trm = 'cterm'
+    endif
 
-  let termopt = ''
-  let termopts = ['bold', 'italic', 'reverse', 'inverse', 'standout', 'underline', 'undercurl', 'strike']
-  for topt in termopts
-      if synIDattr(a:synid, topt, trm) == '1'
-          let termopt .= topt.','
-      endif
-  endfor
-  if len(termopt) > 0
-      let termopt = termopt[:-2]
-  endif
+    let termopt = ''
+    let termopts = ['bold', 'italic', 'reverse', 'inverse', 'standout', 'underline', 'undercurl', 'strike']
+    for topt in termopts
+        if synIDattr(a:synid, topt, trm) == '1'
+            let termopt .= topt.','
+        endif
+    endfor
+    if len(termopt) > 0
+        let termopt = termopt[:-2]
+    endif
 
-  return {
-        \ "name": name,
-        \ "termfg": termfg,
-        \ "termbg": termbg,
-        \ 'termopt': termopt,
-        \ }
+    return {
+          \ "name": name,
+          \ "termfg": termfg,
+          \ "termbg": termbg,
+          \ 'termopt': termopt,
+          \ }
 endfunction
 
 function! popsyntax#popsyntax_on() abort
