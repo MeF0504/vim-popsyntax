@@ -10,59 +10,29 @@ function! popsyntax#popsyntax_toggle() abort
     endif
 endfunction
 
-let s:pwid = 0
+let s:pwid = -1
 if has('nvim')
-    let s:bufnr = 0
+    let s:bufnr = -1
 endif
 function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
-    if (s:pwid > 0) && !has('nvim')
-        call popsyntax#close_popup()
-    endif
     if cword != ''
-        if has('gui_running') || (has('termguicolors') && &termguicolors)
-            let trm = 'gui'
-        else
-            let trm = 'cterm'
-        endif
-
-        let baseSyn = s:get_syn_attr(s:get_syn_id(0))
-        let s_info = "name: " . baseSyn.name
-        if baseSyn.termfg != ''
-            let s_info .= "   ".trm."fg: " . baseSyn.termfg
-        endif
-        if baseSyn.termbg != ''
-            let s_info .= "   ".trm."bg: " . baseSyn.termbg
-        endif
-        if baseSyn.termopt != ''
-            let s_info .= "   ".trm.": " . baseSyn.termopt
-        endif
-        let popup_text = [s_info]
-
-        if s:get_syn_id(0) != s:get_syn_id(1)
-            let linkedSyn = s:get_syn_attr(s:get_syn_id(1))
-            let link_info = "=> name: " . linkedSyn.name
-            if linkedSyn.termfg != ""
-                let link_info .= "   ".trm."fg: " . linkedSyn.termfg
-            endif
-            if linkedSyn.termbg != ""
-                let link_info .= "   ".trm."bg: " . linkedSyn.termbg
-            endif
-            if linkedSyn.termopt != ""
-                let link_info .= "   ".trm.": " . linkedSyn.termopt
-            endif
-            " let s_info = '   '.s_info
-            let popup_text = [s_info, link_info]
-        endif
-
+        let popup_text = s:get_syntax_text()
         if has('popupwin')
-            let s:pwid = popup_create(popup_text, #{
-                        \ maxheight: 3,
-                        \ close: 'click',
-                        \ line: 'cursor-1',
-                        \ col: 'cursor',
-                        \ pos: 'botleft',
-                        \})
+            if s:pwid < 0
+                let s:pwid = popup_create(popup_text, #{
+                            \ maxheight: 3,
+                            \ close: 'none',
+                            \ line: 'cursor+1',
+                            \ col: 'cursor',
+                            \ pos: 'topleft',
+                            \})
+            else
+                call popup_setoptions(s:pwid, #{
+                            \ line: 'cursor+1',
+                            \ col: 'cursor',
+                            \})
+            endif
 
         elseif has('nvim')
             let width = len(popup_text[0])
@@ -79,27 +49,31 @@ function! popsyntax#open_popup() abort
                         \ 'style': 'minimal',
                         \ 'focusable': v:false,
                         \ }
-            if s:bufnr == 0
+            if s:bufnr < 0
                 let s:bufnr = nvim_create_buf(v:false, v:true)
             endif
-            if s:pwid == 0
+            if s:pwid < 0
                 let s:pwid = nvim_open_win(s:bufnr, v:false, config)
             else
                 call nvim_win_set_config(s:pwid, config)
             endif
             call nvim_buf_set_lines(s:bufnr, 0, -1, 0, popup_text)
-
         endif
+    else
+        call popsyntax#close_popup()
     endif
 endfunction
 
 function! popsyntax#close_popup()
+    if s:pwid < 0
+        return
+    endif
     if exists('*popup_close')
         call popup_close(s:pwid)
     elseif has('nvim')
         call nvim_win_close(s:pwid, v:false)
     endif
-    let s:pwid = 0
+    let s:pwid = -1
 endfunction
 
 function! s:get_syn_id(transparent) abort
@@ -140,6 +114,45 @@ function! s:get_syn_attr(synid) abort
           \ "termbg": termbg,
           \ 'termopt': termopt,
           \ }
+endfunction
+
+function! s:get_syntax_text() abort
+    if has('gui_running') || (has('termguicolors') && &termguicolors)
+        let trm = 'gui'
+    else
+        let trm = 'cterm'
+    endif
+
+    let baseSyn = s:get_syn_attr(s:get_syn_id(0))
+    let s_info = "name: " . baseSyn.name
+    if baseSyn.termfg != ''
+        let s_info .= "   ".trm."fg: " . baseSyn.termfg
+    endif
+    if baseSyn.termbg != ''
+        let s_info .= "   ".trm."bg: " . baseSyn.termbg
+    endif
+    if baseSyn.termopt != ''
+        let s_info .= "   ".trm.": " . baseSyn.termopt
+    endif
+    let popup_text = [s_info]
+
+    if s:get_syn_id(0) != s:get_syn_id(1)
+        let linkedSyn = s:get_syn_attr(s:get_syn_id(1))
+        let link_info = "=> name: " . linkedSyn.name
+        if linkedSyn.termfg != ""
+            let link_info .= "   ".trm."fg: " . linkedSyn.termfg
+        endif
+        if linkedSyn.termbg != ""
+            let link_info .= "   ".trm."bg: " . linkedSyn.termbg
+        endif
+        if linkedSyn.termopt != ""
+            let link_info .= "   ".trm.": " . linkedSyn.termopt
+        endif
+        " let s_info = '   '.s_info
+        " let popup_text = [s_info, link_info]
+        call add(popup_text, link_info)
+    endif
+    return popup_text
 endfunction
 
 function! popsyntax#popsyntax_on() abort
