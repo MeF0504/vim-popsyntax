@@ -6,9 +6,11 @@ Vim function that shows the syntax information under the cursor by the popup win
 
 ## Requirements
 
-- popup window
+- popup window or neovim
 ```vim
 echo has('popupwin')  " == 1
+" or
+echo has('nvim') " == 1
 ```
 
 ## Installation
@@ -18,6 +20,12 @@ if you use dein,
 call dein#add('MeF0504/vim-popsyntax')
 ```
 or do something like this.
+
+## Options
+
+- `g:popsyntax_match_enable` (number):
+    - if 1, also check the match information using `getmatches()`.
+    - default: 0
 
 ## Usage
 

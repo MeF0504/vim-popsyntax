@@ -18,6 +18,9 @@ function! popsyntax#open_popup() abort
     let cword = expand('<cword>')
     if cword != ''
         let popup_text = s:get_syntax_text()
+        if exists('g:popsyntax_match_enable') && g:popsyntax_match_enable
+            let popup_text += s:get_match_info()
+        endif
         if has('popupwin')
             if s:pwid < 0
                 let s:pwid = popup_create(popup_text, #{
@@ -35,10 +38,12 @@ function! popsyntax#open_popup() abort
             endif
 
         elseif has('nvim')
-            let width = len(popup_text[0])
-            if len(popup_text)==2 && width<len(popup_text[1])
-                let width = len(popup_text[1])
-            endif
+            let width = 0
+            for i in range(len(popup_text))
+                if width < len(popup_text[i])
+                    let width = len(popup_text[i])
+                endif
+            endfor
             let config = {
                         \ 'relative': 'cursor',
                         \ 'anchor': 'NW',
@@ -69,9 +74,13 @@ function! popsyntax#close_popup()
         return
     endif
     if exists('*popup_close')
-        call popup_close(s:pwid)
+        if match(popup_list(), s:pwid) != -1
+            call popup_close(s:pwid)
+        endif
     elseif has('nvim')
-        call nvim_win_close(s:pwid, v:false)
+        if (match(nvim_list_wins(),s:pwid)!=-1) && !empty(nvim_win_get_config(s:pwid)['relative'])
+            call nvim_win_close(s:pwid, v:false)
+        endif
     endif
     let s:pwid = -1
 endfunction
@@ -155,11 +164,40 @@ function! s:get_syntax_text() abort
     return popup_text
 endfunction
 
+function! s:get_match_info() abort
+    let match_info = []
+    let cword = expand('<cword>')
+    let matches = getmatches()
+    for m in matches
+        if has_key(m, 'pattern')
+            if cword =~# m.pattern
+                let info = printf('match (pattern)|| %s', m.group)
+                call add(match_info, info)
+            endif
+        elseif has_key(m, 'pos1')
+            if len(m.pos1) == 1
+                if m.pos1[0] == line('.')
+                    let info = printf('match (pos)|| %s', m.group)
+                    call add(match_info, info)
+                endif
+            elseif len(m.pos1) == 3
+                if m.pos1 == [line('.'), col('.'), 1] " 1?
+                    let info = printf('match (pos)|| %s', m.group)
+                    call add(match_info, info)
+                endif
+            endif
+        endif
+    endfor
+    return match_info
+endfunction
+
 function! popsyntax#popsyntax_on() abort
     augroup popsyntax
         autocmd!
         autocmd CursorMoved * call popsyntax#open_popup()
         autocmd InsertEnter * call popsyntax#close_popup()
+        autocmd TabEnter * call popsyntax#open_popup()
+        autocmd TabLeave * call popsyntax#close_popup()
     augroup end
 endfunction
 
