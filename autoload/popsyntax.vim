@@ -31,6 +31,7 @@ function! popsyntax#open_popup() abort
                             \ pos: 'topleft',
                             \})
             else
+                call popup_settext(s:pwid, popup_text)
                 call popup_setoptions(s:pwid, #{
                             \ line: 'cursor+1',
                             \ col: 'cursor',
